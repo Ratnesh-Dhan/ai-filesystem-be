@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from llama_index.core import  SimpleDirectoryReader, VectorStoreIndex
+from app.utils.indexloader import  index_document
 import os
 import threading
 
@@ -12,30 +12,12 @@ def upload_file():
         return jsonify({"error": "No file part"}), 400
     
     file = request.files['file']
-    print(file, file.filename, "this is file")
     
     if file.filename == '':
         return jsonify({"error": "No selected file"}), 400
     upload_dir = './data'
     
-    def index_document(upload_dir):
-        try:    
-            loader = SimpleDirectoryReader(
-                input_dir=upload_dir,
-                recursive=False,
-                #num_files_limit=1
-            )
-
-            # Loading
-            documents = loader.load_data()
-
-            # Indexing
-            index = VectorStoreIndex.from_documents(documents)
-
-            index.storage_context.persist(persist_dir='./index_folder')
-            print("Index succesfull")
-        except Exception as e:
-            print(f"Error indexing document: {e}")
+    
 
     try:
         # Ensure the uploads directory exists

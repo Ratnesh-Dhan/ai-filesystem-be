@@ -61,5 +61,4 @@ def query_service():
         return jsonify({"error": "something went worng with llamaindex"})
     
     else:
-        print(response_data)
         return jsonify({"response": response_data}), 200
