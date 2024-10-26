@@ -11,7 +11,7 @@ load_dotenv()
 
 def create_app():
     app = Flask(__name__)
-    cors = CORS(app, resources={r"/*": {"origins": os.getenv("FRONTEND")}})
+    CORS(app, resources={r"/*": {"origins": os.getenv("FRONTEND", "*")}})
     
     # Initialize routes
     init_routes(app)
