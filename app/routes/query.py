@@ -5,6 +5,7 @@ import os
 import traceback
 
 
+
 query_bp = Blueprint("query_bp", __name__)
 
 @query_bp.route('/query', methods=['POST'])
@@ -42,9 +43,11 @@ def query_service():
 
             # Get the documents used for the answer
             source_nodes = result.source_nodes 
+            #print(source_nodes[0].score, "Source nodes 0")
+
 
             if source_nodes :
-                source_documents = [node.node.metadata.get('file_name', 'Unknown Document') for node in source_nodes[1:]]
+                source_documents = [node.node.metadata.get('file_name', 'Unknown Document') for node in source_nodes if node.score >= 0.78]
                 response_data = {
                     "answer": str(result.response),
                     "sources": list(set(source_documents))
