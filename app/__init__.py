@@ -10,7 +10,7 @@ load_dotenv()
 
 def create_app():
     app = Flask(__name__)
-    CORS(app)
+    cors = CORS(app, resources={r"/*": {"origins": "*"}})
     
     # Initialize routes
     init_routes(app)
