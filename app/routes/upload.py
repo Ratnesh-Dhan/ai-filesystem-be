@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify
 from llama_index.core import  SimpleDirectoryReader, VectorStoreIndex
 import os
+import threading
 
 upload_bp = Blueprint("upload_bp", __name__)
 
@@ -11,35 +12,38 @@ def upload_file():
         return jsonify({"error": "No file part"}), 400
     
     file = request.files['file']
+    print(file, file.filename, "this is file")
     
     if file.filename == '':
         return jsonify({"error": "No selected file"}), 400
+    upload_dir = './data'
     
-    # Check file type
-    # if not (file.filename.endswith('.pdf') or file.filename.endswith('.xlsx')):
-        
-    #     return jsonify({"error": "File type not allowed. Only PDF and Excel files are accepted."}), 400
-    
+    def index_document(upload_dir):
+        try:    
+            loader = SimpleDirectoryReader(
+                input_dir=upload_dir,
+                recursive=False,
+                #num_files_limit=1
+            )
+
+            # Loading
+            documents = loader.load_data()
+
+            # Indexing
+            index = VectorStoreIndex.from_documents(documents)
+
+            index.storage_context.persist(persist_dir='./index_folder')
+            print("Index succesfull")
+        except Exception as e:
+            print(f"Error indexing document: {e}")
+
     try:
         # Ensure the uploads directory exists
         #upload_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),"../../data"))
-        upload_dir = './data'
         os.makedirs(upload_dir, exist_ok=True)  # Create the directory if it doesn't exist
         file.save(os.path.join(upload_dir, file.filename))
         #-----------------------INDEXING STARTING---------------------------------------------------------
-        loader = SimpleDirectoryReader(
-            input_dir=upload_dir,
-            recursive=False,
-            #num_files_limit=1
-        )
-
-        # Loading
-        documents = loader.load_data()
-
-        # Indexing
-        index = VectorStoreIndex.from_documents(documents)
-
-        index.storage_context.persist(persist_dir='./index_folder') 
+        threading.Thread(target=index_document(upload_dir)).start()
         #------------------------INDEXING ENDING-------------------------------------------------------------
         return jsonify({"message": "File uploaded successfully"}), 200
     except Exception as e:
