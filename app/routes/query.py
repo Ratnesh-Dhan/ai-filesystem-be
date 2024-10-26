@@ -26,8 +26,8 @@ def query_service():
         # prompt_template=Prompt(template="only use the most relevant source nodes to answer the question. If you don't find relevant information, say 'No relevant information found.'")
         query_engine = index.as_query_engine(
              response_mode="compact", 
-            # similarity_cutoff=0.7,
-            # retrieval_mode="strict"
+            similarity_cutoff=0.7,
+            retrieval_mode="strict"
         )
         # retriever = index.as_retriever()
         #query_engine = index.as_query_engine(response_mode="tree_summarize",verbose=True,)
