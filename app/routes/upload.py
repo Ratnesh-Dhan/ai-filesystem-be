@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from app.utils.indexloader import  index_document
+from app.utils.indexDocument import  index_document
 import os
 import threading
 
@@ -24,8 +24,9 @@ def upload_file():
         #upload_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),"../../data"))
         os.makedirs(upload_dir, exist_ok=True)  # Create the directory if it doesn't exist
         file.save(os.path.join(upload_dir, file.filename))
+        print("upload succesfull")
         #-----------------------INDEXING STARTING---------------------------------------------------------
-        threading.Thread(target=index_document(upload_dir)).start()
+        threading.Thread(target=index_document, args=(upload_dir,)).start()
         #------------------------INDEXING ENDING-------------------------------------------------------------
         return jsonify({"message": "File uploaded successfully"}), 200
     except Exception as e:

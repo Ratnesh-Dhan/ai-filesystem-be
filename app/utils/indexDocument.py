@@ -18,3 +18,5 @@ def index_document(upload_dir):
             print("Index succesfull")
         except Exception as e:
             print(f"Error indexing document: {e}")
+
+
