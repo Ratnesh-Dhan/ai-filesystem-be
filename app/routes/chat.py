@@ -3,12 +3,13 @@ from flask import Blueprint, request, jsonify
 import traceback
 from app.utils.indexLoader import getIndex
 
-chat_pb = Blueprint("chat_pb", __name__)
+chat_bp = Blueprint("chat_bp", __name__)
+end_chat_bp = Blueprint("end_chat_bp", __name__)
 
 # Dictionary to temporarily store chat context for each session
 temporary_sessions = {}
 
-@chat_pb.route('/chat', methods=['POST'])
+@chat_bp.route('/chat', methods=['POST'])
 def chat_service():
     print("chat route is called")
     
@@ -55,8 +56,9 @@ def chat_service():
         return jsonify({"error": "something went wrong with llamaindex"}), 500
 
 # Add a new route to explicitly end sessions
-@chat_pb.route('/end-chat', methods=['POST'])
+@end_chat_bp.route('/end-chat', methods=['POST'])
 def end_chat_session():
+    print('end chat route called')
     temp_session_id = request.headers.get("Temp-Session-ID")
     
     if temp_session_id and temp_session_id in temporary_sessions:
