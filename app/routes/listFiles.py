@@ -13,7 +13,7 @@ def list_files_route():
     try:
         files = listfiles()
         response = jsonify({'files': files})
-        #response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Origin', '*')
         response.status_code = 200
         return response
     except Exception as e:
