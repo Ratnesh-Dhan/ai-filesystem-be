@@ -1,7 +1,14 @@
 from llama_index.core import  SimpleDirectoryReader, VectorStoreIndex
+import os
 
 def index_document(upload_dir):
-        try:    
+        try:
+            if not os.listdir(upload_dir):
+                for root, dirs, files in os.walk('./index_folder'):
+                    for file in files:
+                        os.remove(os.path.join(root, file))
+                print("All files in index_folder have been deleted.")
+                return
             loader = SimpleDirectoryReader(
                 input_dir=upload_dir,
                 recursive=False,

@@ -2,6 +2,7 @@
 from flask import Blueprint, request, jsonify
 import traceback
 from app.utils.indexLoader import getIndex
+from flask_cors import cross_origin
 
 chat_bp = Blueprint("chat_bp", __name__)
 end_chat_bp = Blueprint("end_chat_bp", __name__)
@@ -10,6 +11,7 @@ end_chat_bp = Blueprint("end_chat_bp", __name__)
 temporary_sessions = {}
 
 @chat_bp.route('/chat', methods=['POST'])
+@cross_origin(headers=['Content-Type', 'Temp-Session-ID']) 
 def chat_service():
     print("chat route is called")
     
@@ -50,6 +52,7 @@ def chat_service():
             "session_id": temp_session_id
         }), 200
 
+
     except Exception as e:
         print("chat error", e)
         print(traceback.format_exc())
@@ -57,6 +60,7 @@ def chat_service():
 
 # Add a new route to explicitly end sessions
 @end_chat_bp.route('/end-chat', methods=['POST'])
+@cross_origin(headers=['Content-Type', 'Temp-Session-ID']) 
 def end_chat_session():
     print('end chat route called')
     temp_session_id = request.headers.get("Temp-Session-ID")
