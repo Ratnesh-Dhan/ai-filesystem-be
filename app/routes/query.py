@@ -1,11 +1,11 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, send_file, Response
 from llama_index.core import  StorageContext, load_index_from_storage, get_response_synthesizer
 from app.utils.indexLoader import getIndex
 import os
 import traceback
 from app.utils.custom_query import  RAGQueryEngine
 from llama_index.core.retrievers import VectorIndexRetriever
-
+import json
 
 
 
@@ -13,72 +13,95 @@ query_bp = Blueprint("query_bp", __name__)
 
 @query_bp.route('/query', methods=['POST'])
 def query_service():
-    print("query route is called")
-    
-    #------------------------------------------------
-        
-    # Load the index from the file or database
-    
-        # retriever = index.as_retriever()
-        #query_engine = index.as_query_engine(response_mode="tree_summarize",verbose=True,)
-
-
-        # retriever=VectorIndexRetriever(
-        #     index=index,
-        #     similarity_top_k=5,
-        # )
-        # response_synthesizer = get_response_synthesizer(
-        #     response_mode="refine",
-        # )
-        # query_engine = RAGQueryEngine(retriever=retriever, response_synthesizer=response_synthesizer)
-    #-------------------------------------------------------------
-
-    
-    
     index = getIndex()
     try:
         if index is None:
-           response_data = {
-                "answer": "No relevant data found in the provided documents.",
-                "sources": [None]
-            }
-        else:
-            if(index) :
-                # prompt_template=Prompt(template="only use the most relevant source nodes to answer the question. If you don't find relevant information, say 'No relevant information found.'")
-                query_engine = index.as_query_engine(
-                    response_mode="compact", 
-                    similarity_cutoff=0.7,
-                    retrieval_mode="strict"
-                )
-            data = request.json
-            query_text = data.get('query')
-            result = query_engine.query(query_text)
-
-            # Get the documents used for the answer
-            source_nodes = result.source_nodes
-            for node in source_nodes: 
-                print(node.score, "Source nodes")
-            print(result)
-
-
-
-            if source_nodes :
-                source_documents = [node.node.metadata.get('file_name', 'Unknown Document') for node in source_nodes]
-                #if node.score >= 0.75
-                response_data = {
-                    "answer": str(result.response),
-                    "sources": list(set(source_documents))
-                }
-            else:
-                response_data = {
+            return jsonify({
+                "response": {
                     "answer": "No relevant data found in the provided documents.",
                     "sources": []
                 }
+            }), 200
 
-    except  Exception as e:
+        query_engine = index.as_query_engine(
+            streaming=True,
+            response_mode="compact",
+            similarity_cutoff=0.7,
+            retrieval_mode="strict"
+        )
+        
+        data = request.json
+        query_text = data.get('query')
+        result = query_engine.query(query_text)
+
+        #source_nodes = result.source_nodes
+
+        # if not source_nodes:
+        #     return jsonify({
+        #         "response": {
+        #             "answer": "No relevant data found in the provided documents.",
+        #             "sources": []
+        #         }
+        #     }), 200
+
+        # source_details = []
+        # for node in source_nodes:
+        #     source_detail = {
+        #         'file_name': node.node.metadata.get('file_name', 'Unknown Document'),
+        #         'page_number': node.node.metadata.get('page_label', 'Unknown Page'),
+        #         'text_content': node.node.get_content().strip().replace("\n", " ")[:1000],
+        #     }
+        #     source_details.append(source_detail)
+
+        def generate():
+            for text in result.response_gen:
+                for char in text:
+                    yield char
+            # Send sources as the final message
+            # yield f"data: SOURCES_START{json.dumps(source_details)}SOURCES_END\n\n"
+
+        return generate(), {'content_type':'application/json' }
+
+    except Exception as e:
         print("Error occurred: ", e)
         print(traceback.format_exc())
-        return jsonify({"error": "something went worng with llamaindex"})
+        return jsonify({"error": "something went wrong with llamaindex"})
     
-    else:
-        return jsonify({"response": response_data}), 200
+
+
+
+@query_bp.route('/download/<filename>', methods=['GET'])
+def download_file(filename):
+    try:
+        # # Specify the data directory
+        # data_dir = './data'
+        # file_path = os.path.join(data_dir, filename)
+        # print(file_path)
+        
+        # # Check if file exists and is within the data directory
+        # if not os.path.exists(file_path) or not os.path.commonpath([file_path, data_dir]) == data_dir:
+        #     print("file not found")
+        #     return jsonify({"error": "File not found"}), 404
+
+        # Get the absolute path to the data directory
+        current_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        data_dir = os.path.join(current_dir, 'data')
+        file_path = os.path.join(data_dir, filename)
+        print(f"Looking for file at: {file_path}")  # Debug print
+        
+        # Check if file exists and is within the data directory
+        if not os.path.exists(file_path) or not os.path.commonpath([file_path, data_dir]) == data_dir:
+            print(f"File not found at path: {file_path}")  # Debug print
+            return jsonify({"error": "File not found"}), 404
+        
+        # Send the file as an attachment
+        return send_file(
+            file_path,
+            as_attachment=True,
+            download_name=filename
+        )
+    
+    except Exception as e:
+        print("Error occurred: ", e)
+        print(traceback.format_exc())
+        return jsonify({"error": "Error downloading file"}), 500

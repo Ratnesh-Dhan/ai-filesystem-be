@@ -15,6 +15,7 @@ def chat_service():
     
     # Get or create a temporary session ID from request headers
     temp_session_id = request.headers.get("Temp-Session-ID")
+    print(temp_session_id)
     
     if not temp_session_id:
         return jsonify({"error": "Temp-Session-ID header is required"}), 400
@@ -27,6 +28,7 @@ def chat_service():
             # Initialize new session with message history
             index = getIndex()
             chat_engine = index.as_chat_engine(
+                streaming=True,
                 chat_mode="condense_question",  # Better for follow-up questions
                 verbose=True,
                 # system_prompt=(
@@ -42,13 +44,19 @@ def chat_service():
         
         # Process the chat input with chat engine
         response = chat_engine.stream_chat(chat_text)
-        response_data = "".join(token for token in response.response_gen)
-        print(response_data)
+        def generate():
+            for token in response.response_gen:
+                for char in token:
+                    print(char)
+                    yield char
+        return generate(), {'content_type':'application/json', "session_id": temp_session_id }
+        # response_data = "".join(token for token in response.response_gen)
+        # print(response_data)
 
-        return jsonify({
-            "response": response_data,
-            "session_id": temp_session_id
-        }), 200
+        # return jsonify({
+        #     "response": response_data,
+        #     "session_id": temp_session_id
+        # }), 200
 
     except Exception as e:
         print("chat error", e)
